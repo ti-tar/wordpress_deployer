@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# user can change it:
 
 DB_NAME="wpdbname"
 DB_USER="wpdbuser"
@@ -8,11 +9,22 @@ DB_HOST="localhost"
 DB_CHARSET="utf8mb4"
 DB_COLLATE="utf8mb4_unicode_ci"
 
+DOMAIN_NAME_OR_IP="192.168.56.101"
+
+NGINX_USER="nginxuser"
+NGINX_GROUP="nginxgroup"
+
+NGINX_FOLDER="/etc/nginx"
+PHPFPM_FOLDER="/usr/local/php7/etc"
+
+
+
+# Default values. Do not touch it
+
 DEFAULT_PROJECT_FOLDER_NAME="project"
 DEFAULT_INSTALLATION_PATH="/var/www"
 DEFAULT_PROJECT_USER="user"
 
-DOMAIN_NAME_OR_IP="192.168.56.101"
 
 PROJECT_FILES=(
 "backups/.gitkeep"
@@ -86,6 +98,12 @@ for PROJECT_FILES_ITEM in "${PROJECT_FILES[@]}"; do
 done;
 
 
+
+
+
+# NGINX
+# -----
+
 echo -e "\e[32mConfigure Nginx:\e[0m"
 if [[ "$(read_input "Do you want to configure nginx('n' - skip nginx at all)?(Y/n)" "Y")" =~ ^[Yy]$ ]];   then
   echo -e "\e[32mCreating config file.\e[0m"
@@ -150,14 +168,72 @@ server {
     }
 }
 EOF
+echo "File $NGINX_CONF_FILE created."
 echo "Done!"
 
 echo -e "\e[32mCreate sym-link to /etc/nginx/sites-enabled/ folder.\e[0m"
-ln -s "$NGINX_CONF_FILE" /etc/nginx/sites-enabled/
+ln -s "$NGINX_CONF_FILE" "$NGINX_FOLDER/sites-enabled"
 echo "Done!"
 
 fi
 
+
+
+
+# PHP_FPM
+# -------
+
+echo -e "\e[32mConfiging PHP_FPM:\e[0m"
+if [[ "$(read_input "Do you want to configure php-fpm('n' - skip nginx at all)?(Y/n)" "Y")" =~ ^[Yy]$ ]];   then
+  echo -e "\e[32mCreating config file.\e[0m"
+
+  PHPFPM_CONF_FILE="$PROJECT_PATH/configs/${PROJECT_FOLDER_NAME}.php-fpm.conf"
+
+cat << EOF > "$PHPFPM_CONF_FILE"
+[$PROJECT_FOLDER_NAME]
+
+; http://php.net/manual/en/install.fpm.configuration.php
+user = user
+group = user
+listen = /var/run/${PROJECT_FOLDER_NAME}.php-fpm.sock
+listen.backlog = 511
+listen.owner = $NGINX_USER
+listen.group = $NGINX_GROUP
+listen.mode = 0660
+
+slowlog=/var/www/${PROJECT_FOLDER_NAME}/logs/php-fpm.error.log
+
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+pm.process_idle_timeout = 10
+pm.max_requests = 0
+request_slowlog_timeout = 0s
+request_terminate_timeout = 0s
+rlimit_files = 0
+rlimit_core = 0
+catch_workers_output = no
+clear_env = yes
+security.limit_extensions = .php .phar
+
+EOF
+
+echo "File $PHPFPM_CONF_FILE was created"
+
+echo -e "\e[32mCreate sym-link to / folder.\e[0m"
+ln -s "$PHPFPM_CONF_FILE" "$PHPFPM_FOLDER/php-fpm.d"
+echo "Done!"
+
+fi
+
+
+
+
+
+# Wordpress
+# ---------
 
 cd $PROJECT_PATH
 
@@ -175,24 +251,51 @@ cp $PROJECT_PATH/www/wp-config-sample.php $PROJECT_PATH/www/wp-config.php
 echo "Done!"
 
 
+
+
+
+# MySQL
+# -----
+
 echo -e "\e[32mMySQL Tables.\e[0m"
 mysql -u root -p -uroot -e "DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${DB_NAME} CHARACTER SET ${DB_CHARSET} COLLATE ${DB_COLLATE};"
 mysql -u root -p -uroot -e "CREATE USER ${DB_USER}@${DB_HOST} IDENTIFIED BY '${DB_PASSWORD}';GRANT ALL ON ${DB_NAME}.* TO ${DB_USER}@${DB_HOST} IDENTIFIED BY '${DB_PASSWORD}';FLUSH PRIVILEGES;"
 echo "Done!"
 
 
-#echo -e "\e[32mConfigure Wordpress.\e[0m"
-#sed -i s/database_name_here/$DB_NAME/g $PROJECT_PATH/www/wp-config.php
-#sed -i s/username_here/$DB_USER/g $PROJECT_PATH/www/wp-config.php
-#sed -i s/password_here/$DB_PASSWORD/g $PROJECT_PATH/www/wp-config.php
-#sed -i s/localhost/$DB_HOST/g $PROJECT_PATH/www/wp-config.php
-#sed -i s/utf8/$DB_CHARSET/g $PROJECT_PATH/www/wp-config.php
-#echo "Done!"
+
+echo -e "\e[32mConfigure Wordpress.\e[0m"
+
+DB_NAME_VAR="define('DB_NAME', '${DB_NAME}');"
+sed -i -e "s/.*DB_NAME.*/${DB_NAME_VAR}/" $PROJECT_PATH/www/wp-config.php
+
+DB_USER_VAR="define('DB_USER', '${DB_USER}');"
+sed -i -e "s/.*DB_USER.*/${DB_USER_VAR}/" $PROJECT_PATH/www/wp-config.php
+
+DB_HOST_VAR="define('DB_HOST', '${DB_HOST}');"
+sed -i -e "s/.*DB_HOST.*/${DB_HOST_VAR}/" $PROJECT_PATH/www/wp-config.php
+
+DB_PASSWORD_VAR="define('DB_PASSWORD', '${DB_PASSWORD}');"
+sed -i -e "s/.*DB_PASSWORD.*/${DB_PASSWORD_VAR}/" $PROJECT_PATH/www/wp-config.php
+
+DB_CHARSET_VAR="define('DB_CHARSET', '${DB_CHARSET}');"
+sed -i -e "s/.*DB_CHARSET.*/${DB_CHARSET_VAR}/" $PROJECT_PATH/www/wp-config.php
+
+DB_COLLATE_VAR="define('DB_COLLATE', '${DB_COLLATE}');"
+sed -i -e "s/.*DB_COLLATE.*/${DB_COLLATE_VAR}/" $PROJECT_PATH/www/wp-config.php
+
+echo "Done!"
+
+
 
 echo -e "\e[32mSet user:group permission to project folder.\e[0m"
 chown $PROJECT_USER:$PROJECT_GROUP -R $PROJECT_PATH
 echo "Done!"
 
+
+
+# Restart services
+# ----------------
 
 echo -e "\e[32mRestart nginx and php-fpm.\e[0m"
 service nginx restart
