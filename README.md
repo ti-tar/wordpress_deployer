@@ -1,9 +1,23 @@
 # wordpress deployer
 It's a bash script that helps to install latest wordpress copy on your linux-based OS.
 
-### How to use: ###
+### HOW TO USE: ###
 
-Download and edit file `wordpress_deployer.sh`:
+Set your own params (read below), make script executable and run it:
+```
+git clone git@github.com:ti-tar/wordpress_deployer.git 
+cd wordpress_deployer
+sudo chmod +x wordpress_deployer.sh
+sudo ./wordpress_deployer.sh
+```
+During installation command line will ask you to enter mysql root pass twice (database creation and to set user privileges).
+After installation open browser and go to domain/ip you've set.
+Everything should work as well.
+
+
+### Set params: ###
+
+Edit file `wordpress_deployer.sh`:
 ```
 sudo vim wordpress_deployer.sh
 ```
@@ -16,18 +30,18 @@ DB_USER="wpdbuser"
 DB_PASSWORD="wpdbpassword"
 ```
 
-... and this (nginx `server name`)
+Set ginx `server name` :
 
 ```
 DOMAIN_NAME_OR_IP="192.168.56.101"
 ```
 
-Make script executable and execute it:
-```
-sudo chmod +x wordpress_deployer.sh
-sudo ./wordpress_deployer.sh
-```
+You may need to change nginx/php-fpm:
 
+```
+NGINX_FOLDER="/etc/nginx"
+PHPFPM_FOLDER="/usr/local/php7/etc"
+```
 
 ### Requirements: ###
 1. LEMP Stack installed ( Linux(tested on CentOS7/Ubuntu14.04), Nginx, MySQL(MariaDB), PHP)
@@ -42,9 +56,11 @@ sudo ./wordpress_deployer.sh
     * .gitkeep
 * /configs
     * {{project}}.nginx.conf
+    * {{project}}.php-fpm.conf
 * /logs
     * nginx.access.log
     * nginx.error.log
+    * php-fpm.error.log
 * /www
     * {{ wordpress files }}
 * .gitignore
