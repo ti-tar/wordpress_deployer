@@ -5,7 +5,7 @@ It's a bash script that helps to install latest wordpress copy on your linux-bas
 
 Set your own params (read below), make script executable and run it:
 ```
-git clone git@github.com:ti-tar/wordpress_deployer.git 
+git clone https://github.com/ti-tar/wordpress_deployer.git
 cd wordpress_deployer
 sudo chmod +x wordpress_deployer.sh
 sudo ./wordpress_deployer.sh
