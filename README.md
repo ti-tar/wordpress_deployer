@@ -30,7 +30,7 @@ DB_USER="wpdbuser"
 DB_PASSWORD="wpdbpassword"
 ```
 
-Set ginx `server name` :
+Set nginx `server name` :
 
 ```
 DOMAIN_NAME_OR_IP="192.168.56.101"
