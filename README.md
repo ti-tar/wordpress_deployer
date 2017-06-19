@@ -22,7 +22,7 @@ Edit file `wordpress_deployer.sh`:
 sudo vim wordpress_deployer.sh
 ```
 
-Find and edit this rows(MysqlDB params):
+Find and edit this rows(MysqlDB params). You don't have to create it, DB creation and user/privileges will set up automatically. Just make sure your Mysql is running and you have root-password.
 
 ```
 DB_NAME="wpdbname"
