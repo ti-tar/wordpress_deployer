@@ -11,7 +11,7 @@ sudo chmod +x wordpress_deployer.sh
 sudo ./wordpress_deployer.sh
 ```
 During installation command line will ask you to enter mysql root pass twice (database creation and to set user privileges).
-After installation open browser and go to domain/ip you've set.
+After installation, open browser and go to domain/ip you've set.
 Everything should work as well.
 
 
